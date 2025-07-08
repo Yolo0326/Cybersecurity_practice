@@ -226,7 +226,6 @@ if __name__ == '__main__':
     plt.tight_layout()
     plt.show()
 
-    # ================== 添加攻击部分 ==================
     # 定义攻击列表
     attacks = [
         ("Gaussian Noise", lambda img: Attack.Gaussian(img, var=0.01)),
@@ -240,15 +239,11 @@ if __name__ == '__main__':
     # 创建两行布局
     plt.figure(figsize=(18, 8))
 
-    # 第一行：攻击后的含水印图像
-    # 添加原始含水印图像作为第一个图像
     plt.subplot(2, len(attacks) + 1, 1)
     plt.imshow(rbg_synthesis)
     plt.title("Watermarked Image\n(No Attack)")
     plt.axis('off')
 
-    # 第二行：提取的水印
-    # 添加原始提取的水印作为第一个图像
     plt.subplot(2, len(attacks) + 1, len(attacks) + 2)
     plt.imshow(extract_watermark)
     plt.title("Extracted Watermark\n(No Attack)")
