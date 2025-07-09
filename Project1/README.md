@@ -174,6 +174,9 @@ void decrypt(const unsigned char input[16], unsigned char output[16]) {
 ```
 
 ## 优化方法
+- 启用增强指令集：高级向量扩展2 (/arch:AVX2)  
+- 基本运行时检查：默认值  
+- 安全检查：禁用安全检查 (/GS-)  
 ### 一、查表优化
 预计算T函数和T'函数的结果，在轮函数中通过查表替代位运算。
 ```C++
@@ -235,7 +238,7 @@ void initLookupTables() {
 ### 三、数据并行
 使用SIMD指令进行并行处理，一次处理多个分组。
 ```C++
-// AVX2指令集（并行加密4个分组）
+// AVX2并行加密
 void encryptParallel(const unsigned char* input, unsigned char* output, size_t numBlocks) {
     // 确保输入输出内存对齐
     constexpr size_t alignment = 32;
@@ -248,25 +251,65 @@ void encryptParallel(const unsigned char* input, unsigned char* output, size_t n
         return;
     }
 
-    // AVX2并行处理（每次处理4个分组）
-    for (size_t i = 0; i < numBlocks; i += 4) {
-        // 加载4个分组
+    // AVX2并行处理（每次处理8个分组）
+    for (size_t i = 0; i < numBlocks; i += 8) {
+        // 加载8个分组
         __m256i data0 = _mm256_load_si256(reinterpret_cast<const __m256i*>(input + i * 16));
         __m256i data1 = _mm256_load_si256(reinterpret_cast<const __m256i*>(input + (i + 1) * 16));
         __m256i data2 = _mm256_load_si256(reinterpret_cast<const __m256i*>(input + (i + 2) * 16));
         __m256i data3 = _mm256_load_si256(reinterpret_cast<const __m256i*>(input + (i + 3) * 16));
+        __m256i data4 = _mm256_load_si256(reinterpret_cast<const __m256i*>(input + (i + 4) * 16));
+        __m256i data5 = _mm256_load_si256(reinterpret_cast<const __m256i*>(input + (i + 5) * 16));
+        __m256i data6 = _mm256_load_si256(reinterpret_cast<const __m256i*>(input + (i + 6) * 16));
+        __m256i data7 = _mm256_load_si256(reinterpret_cast<const __m256i*>(input + (i + 7) * 16));
+
+        // 重组数据：转置为状态矩阵
+        // 每个__m256i包含8个分组中相同位置的状态字
+        __m256i x0, x1, x2, x3;
+        transpose_4x8_epi32(data0, data1, data2, data3, data4, data5, data6, data7, x0, x1, x2, x3);
+
+        // 32轮迭代
+        for (int round = 0; round < 32; round++) {
+            __m256i rk = _mm256_set1_epi32(roundKeys[round]);
+
+            // 计算: X0 ^ T(X1 ^ X2 ^ X3 ^ rk)
+            __m256i temp = _mm256_xor_si256(x1, x2);
+            temp = _mm256_xor_si256(temp, x3);
+            temp = _mm256_xor_si256(temp, rk);
+            temp = tTransformAVX2(temp);
+            temp = _mm256_xor_si256(x0, temp);
+
+            // 更新状态
+            x0 = x1;
+            x1 = x2;
+            x2 = x3;
+            x3 = temp;
+        }
+
+        // 反序变换
+        __m256i y0 = x3, y1 = x2, y2 = x1, y3 = x0;
+
+        // 转置回原始布局
+        transpose_4x8_epi32(y0, y1, y2, y3, data0, data1, data2, data3, data4, data5, data6, data7);
 
         // 存储结果
         _mm256_store_si256(reinterpret_cast<__m256i*>(output + i * 16), data0);
         _mm256_store_si256(reinterpret_cast<__m256i*>(output + (i + 1) * 16), data1);
         _mm256_store_si256(reinterpret_cast<__m256i*>(output + (i + 2) * 16), data2);
         _mm256_store_si256(reinterpret_cast<__m256i*>(output + (i + 3) * 16), data3);
+        _mm256_store_si256(reinterpret_cast<__m256i*>(output + (i + 4) * 16), data4);
+        _mm256_store_si256(reinterpret_cast<__m256i*>(output + (i + 5) * 16), data5);
+        _mm256_store_si256(reinterpret_cast<__m256i*>(output + (i + 6) * 16), data6);
+        _mm256_store_si256(reinterpret_cast<__m256i*>(output + (i + 7) * 16), data7);
     }
 
     // 处理剩余分组
-    size_t processed = (numBlocks / 4) * 4;
+    size_t processed = (numBlocks / 8) * 8;
     for (size_t i = processed; i < numBlocks; i++) {
         encrypt(input + i * 16, output + i * 16);
     }
 }
 ```
+## 运行结果
+未优化：result1.png
+优化后：result2.png
