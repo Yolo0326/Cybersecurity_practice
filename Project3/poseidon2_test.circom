@@ -1,4 +1,4 @@
-```circom
+```rust
 pragma circom 2.0.0;
 
 // Poseidon2 置换核心组件
