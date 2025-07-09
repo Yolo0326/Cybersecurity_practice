@@ -1,4 +1,3 @@
-```rust
 pragma circom 2.0.0;
 
 // Poseidon2 置换核心组件
@@ -140,4 +139,3 @@ template Poseidon2Hash() {
 
 // 主组件 (Groth16 兼容)
 component main = Poseidon2Hash();
-```
