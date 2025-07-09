@@ -311,5 +311,5 @@ void encryptParallel(const unsigned char* input, unsigned char* output, size_t n
 }
 ```
 ## 运行结果
-未优化：result1.png
+未优化：result1.png  
 优化后：result2.png
