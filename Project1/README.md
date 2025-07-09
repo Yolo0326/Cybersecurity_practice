@@ -311,4 +311,14 @@ void encryptParallel(const unsigned char* input, unsigned char* output, size_t n
 ```
 ## 运行结果
 未优化：result1.png  
-优化后：result2.png
+优化后：result2.png  
+============== 性能测试 ==============  
+串行加密 10MB 数据耗时: 0.148 秒  
+吞吐量: 108.08 MB/s  
+
+串行解密 10MB 数据耗时: 0.163 秒  
+吞吐量: 98.14 MB/s  
+
+并行加密 10MB 数据耗时: 0.052 秒  
+吞吐量: 308.43 MB/s  
+由上述结果可知，与串行加密相比，并行加密吞吐量提升了近三倍，数据耗时也缩短为原来的三分之一。  
