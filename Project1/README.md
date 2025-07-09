@@ -263,7 +263,6 @@ void encryptParallel(const unsigned char* input, unsigned char* output, size_t n
         __m256i data6 = _mm256_load_si256(reinterpret_cast<const __m256i*>(input + (i + 6) * 16));
         __m256i data7 = _mm256_load_si256(reinterpret_cast<const __m256i*>(input + (i + 7) * 16));
 
-        // 重组数据：转置为状态矩阵
         // 每个__m256i包含8个分组中相同位置的状态字
         __m256i x0, x1, x2, x3;
         transpose_4x8_epi32(data0, data1, data2, data3, data4, data5, data6, data7, x0, x1, x2, x3);
