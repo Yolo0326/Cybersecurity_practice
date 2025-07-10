@@ -9,6 +9,7 @@
 2. circom说明文档https://docs.circom.io/  
 3. circom电路样例 https://github.com/iden3/circomlib
 
+## 整体分为核心置换函数和哈希函数封装两部分
 ## PART1: Poseidon2Permutation
 这一部分是实现Poseidon2置换的函数，其输入和输出都是3个元素的数组，参数设置包括素数p、全轮数RF、部分轮数RP和S-box指数d。  
 线性层矩阵M_E和M_I用于线性变换，轮常数RC_full和RC_partial用于轮函数的常数添加。  
