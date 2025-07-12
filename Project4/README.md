@@ -41,7 +41,7 @@ inline uint32_t P0(uint32_t X) { return X ^ ROL(X, 9) ^ ROL(X, 17); }
 inline uint32_t P1(uint32_t X) { return X ^ ROL(X, 15) ^ ROL(X, 23); }
 ```
 ### 二、SM3类
-SM3类中包括重置、更新、最终化以及摘要。  
+SM3类中包括重置、更新、最终化以及摘要等。  
 - 重置  
 初始化哈希状态为SM3的初始值
 ```C++
@@ -107,3 +107,74 @@ void update(const uint8_t* data, size_t len) {
       return ss.str();
   }
 ```
+- 处理  
+在process_block中，首先进行了消息扩展，生成W和W1数组，然后初始化寄存器A到H，执行64轮压缩函数，更新寄存器状态，最后将寄存器状态与哈希状态进行异或操作。
+```C++
+ void process_block(const uint8_t* block) {
+     // 消息扩展
+     uint32_t W[68];
+     uint32_t W1[64];
+
+     // 初始化前16个字
+     for (int i = 0; i < 16; ++i) {
+         W[i] = (block[i * 4] << 24) | (block[i * 4 + 1] << 16) |
+             (block[i * 4 + 2] << 8) | block[i * 4 + 3];
+     }
+
+     // 扩展其余部分
+     for (int j = 16; j < 68; ++j) {
+         W[j] = P1(W[j - 16] ^ W[j - 9] ^ ROL(W[j - 3], 15)) ^
+             ROL(W[j - 13], 7) ^ W[j - 6];
+     }
+
+     // 计算W'
+     for (int j = 0; j < 64; ++j) {
+         W1[j] = W[j] ^ W[j + 4];
+     }
+
+     // 初始化寄存器
+     uint32_t A = state[0];
+     uint32_t B = state[1];
+     uint32_t C = state[2];
+     uint32_t D = state[3];
+     uint32_t E = state[4];
+     uint32_t F = state[5];
+     uint32_t G = state[6];
+     uint32_t H = state[7];
+
+     // 压缩函数
+     for (int j = 0; j < 64; ++j) {
+
+         uint32_t Tj = (j < 16) ? 0x79CC4519 : 0x7A879D8A;
+         uint32_t T_rot = ROL(Tj, j);
+
+         uint32_t SS1 = ROL(ROL(A, 12) + E + T_rot, 7);
+         uint32_t SS2 = SS1 ^ ROL(A, 12);
+         uint32_t TT1 = (j < 16) ?
+             (FF0(A, B, C) + D + SS2 + W1[j]) :
+             (FF1(A, B, C) + D + SS2 + W1[j]);
+         uint32_t TT2 = (j < 16) ?
+             (GG0(E, F, G) + H + SS1 + W[j]) :
+             (GG1(E, F, G) + H + SS1 + W[j]);
+
+         D = C;
+         C = ROL(B, 9);
+         B = A;
+         A = TT1;
+         H = G;
+         G = ROL(F, 19);
+         F = E;
+         E = P0(TT2);
+     }
+
+     state[0] ^= A;
+     state[1] ^= B;
+     state[2] ^= C;
+     state[3] ^= D;
+     state[4] ^= E;
+     state[5] ^= F;
+     state[6] ^= G;
+     state[7] ^= H;
+ }
+```
+## SM3的优化
