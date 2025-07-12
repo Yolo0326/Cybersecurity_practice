@@ -9,3 +9,5 @@
 3.用Groth16算法生成证明  
 ## Project 4: SM3的软件实现及优化  
 ## Project 5: SM2的软件实现及优化  
+## Project 6：实现协议：来自刘巍然老师的报告google password checkup
+参考论文 https://eprint.iacr.org/2019/723.pdf 的 section 3.1，编程语言不限
