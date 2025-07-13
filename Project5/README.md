@@ -241,3 +241,118 @@ Gy = 0xBC3736A2F4F6779C59BDCEE36B692153D0A9877CC62A474002DF32E52139F0A0
         R = (e + x1) % self.n
         return R == r
 ```
+## SM2的优化
+1. 使用雅可比坐标系，将点加和点加倍运算中的模逆操作减少到最终转换时的一次，从而减少模逆运算
+```Python
+ # 雅可比坐标下的点加倍运算
+    def _jacobian_point_double(self, P):
+        if P[2] == 0:  # 无穷远点
+            return P
+
+        X1, Y1, Z1 = P
+
+        XX = (X1 * X1) % self.p
+        YY = (Y1 * Y1) % self.p
+        YYYY = (YY * YY) % self.p
+        ZZ = (Z1 * Z1) % self.p
+        S = 2 * ((X1 + YY) ** 2 - XX - YYYY) % self.p
+        M = (3 * XX + self.a * (ZZ * ZZ) % self.p) % self.p
+        T = (M * M - 2 * S) % self.p
+
+        # 计算新坐标
+        X3 = T
+        Y3 = (M * (S - T) - 8 * YYYY) % self.p
+        Z3 = ((Y1 + Z1) ** 2 - YY - ZZ) % self.p
+
+        return (X3, Y3, Z3)
+
+    # 雅可比坐标下的点加运算
+    def _jacobian_point_add(self, P, Q):
+        if P[2] == 0:  # P是无穷远点
+            return Q
+        if Q[2] == 0:  # Q是无穷远点
+            return P
+
+        X1, Y1, Z1 = P
+        X2, Y2, Z2 = Q
+
+        # 计算中间量
+        Z1Z1 = (Z1 * Z1) % self.p
+        Z2Z2 = (Z2 * Z2) % self.p
+        U1 = (X1 * Z2Z2) % self.p
+        U2 = (X2 * Z1Z1) % self.p
+        S1 = (Y1 * Z2 * Z2Z2) % self.p
+        S2 = (Y2 * Z1 * Z1Z1) % self.p
+
+        H = (U2 - U1) % self.p
+        R = (S2 - S1) % self.p
+
+        if H == 0:
+            if R == 0:
+                return self._jacobian_point_double(P)
+            return (0, 1, 0)  # 无穷远点
+
+        # 计算中间量
+        HH = (H * H) % self.p
+        HHH = (H * HH) % self.p
+        V = (U1 * HH) % self.p
+
+        # 计算新坐标
+        X3 = (R * R - HHH - 2 * V) % self.p
+        Y3 = (R * (V - X3) - S1 * HHH) % self.p
+        Z3 = (H * Z1 * Z2) % self.p
+
+        return (X3, Y3, Z3)
+
+    # 将雅可比坐标转换为仿射坐标
+    def _from_jacobian(self, P):
+        if P[2] == 0:  # 无穷远点
+            return (0, 0)
+
+        X, Y, Z = P
+        Z_inv = self._mod_inverse(Z, self.p)
+        Z_inv_sq = (Z_inv * Z_inv) % self.p
+        x = (X * Z_inv_sq) % self.p
+        y = (Y * Z_inv_sq * Z_inv) % self.p
+        return (x, y)
+
+    # 雅可比坐标点乘算法
+    def _point_mul(self, k, P):
+        # 处理无穷远点
+        if P == (0, 0):
+            return (0, 0)
+
+        # 将仿射坐标转换为雅可比坐标
+        if len(P) == 2:
+            X, Y = P
+            P_jac = (X, Y, 1)
+        else:
+            P_jac = P
+
+        # 初始化结果为无穷远点
+        result = (0, 1, 0)
+
+        # 二进制展开法
+        while k > 0:
+            if k & 1:
+                result = self._jacobian_point_add(result, P_jac)
+            k >>= 1
+            if k > 0:
+                P_jac = self._jacobian_point_double(P_jac)
+
+        return self._from_jacobian(result)
+```
+2. 预计算基点G的雅可比坐标，避免重复转换
+```Python
+    def __init__(self):
+        self.p = P
+        self.a = A
+        self.b = B
+        self.n = N
+        self.G = (Gx, Gy)
+        # 预计算G的雅可比坐标
+        self.G_jacobian = (Gx, Gy, 1)
+```
+## 代码运行结果
+对优化前后的代码进行性能测试对比，记录加解密及签名及验证的运行时间。  
+优化之后的点乘时间约为原来的七分之一，加解密时间以及签名验证时间也明显缩减，同样是未优化之前时间的七分之一左右
