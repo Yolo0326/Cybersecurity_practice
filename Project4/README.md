@@ -178,22 +178,59 @@ void update(const uint8_t* data, size_t len) {
  }
 ```
 ## SM3的优化
-对基本SM3算法的优化可以从查表优化、循环拆分、内存优化等方面进行
-- 查表优化  
-预计算64轮常量表 T_ROT，避免循环中重复计算 ROL(Tj, j)，使用静态常量表减少计算开销
-```C++
-
-```
-
+对基本SM3算法的优化可以从循环拆分、中间结果复用以及内存优化等方面进行
 - 循环拆分  
-将64轮压缩循环拆分为前16轮和后48轮，消除循环内的条件判断，减少分支预测失败
+将64轮压缩循环拆分，通过j<16条件选择不同函数，避免分支嵌套，减少分支预测失败
 ```C++
+// 压缩函数
+for (int j = 0; j < 64; ++j) {
 
+    uint32_t Tj = (j < 16) ? 0x79CC4519 : 0x7A879D8A;
+    uint32_t T_rot = ROL(Tj, j);
+
+    uint32_t SS1 = ROL(ROL(A, 12) + E + T_rot, 7);
+    uint32_t SS2 = SS1 ^ ROL(A, 12);
+    uint32_t TT1 = (j < 16) ?
+        (FF0(A, B, C) + D + SS2 + W1[j]) :
+        (FF1(A, B, C) + D + SS2 + W1[j]);
+    uint32_t TT2 = (j < 16) ?
+        (GG0(E, F, G) + H + SS1 + W[j]) :
+        (GG1(E, F, G) + H + SS1 + W[j]);
+
+    D = C;
+    C = ROL(B, 9);
+    B = A;
+    A = TT1;
+    H = G;
+    G = ROL(F, 19);
+    F = E;
+    E = P0(TT2);
+}
 ```
 - 寄存器重用  
 使用局部变量保存中间结果，减少重复计算
 ```C++
-
+uint32_t A_rot12 = ROL(A, 12);
+uint32_t SS1 = ROL(A_rot12 + E + T_rot, 7);
+uint32_t SS2 = SS1 ^ A_rot12;
 ```
 - 内存优化  
-使用缓冲区预分配（reserve(64)），改进update()的分块处理逻辑，减少内存复制
+使用缓冲区预分配，改进update()的分块处理逻辑，减少内存复制
+```C++
+ void reset() {
+     state[0] = 0x7380166F;
+     state[1] = 0x4914B2B9;
+     state[2] = 0x172442D7;
+     state[3] = 0xDA8A0600;
+     state[4] = 0xA96F30BC;
+     state[5] = 0x163138AA;
+     state[6] = 0xE38DEE4D;
+     state[7] = 0xB0FB0E4E;
+     total_len = 0;
+     buffer.clear();
+     buffer.reserve(64);  // 预分配空间
+ }
+```
+
+## 运行结果
+运行优化前后的代码，对其性能进行测试，可以看出优化后的代码加密速度明显提升，加密时间约为原来的四分之一
