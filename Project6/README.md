@@ -1,5 +1,5 @@
-# 实现协议
-来自刘巍然老师的报告google password checkup，参考论文 https://eprint.iacr.org/2019/723.pdf 的section 3.1 ，也即Figure 2中展示的协议，尝试实现该协议（编程语言不限）
+# 实现协议(Python版本)
+来自刘巍然老师的报告google password checkup，参考论文 https://eprint.iacr.org/2019/723.pdf 的section 3.1 ，也即Figure 2中展示的协议，尝试实现该协议
 ## 协议主要流程
 - Setup  
 1. P1随机选择私钥k1∈Z_|G|，P2随机选择私钥k2∈Z_|G|
@@ -23,6 +23,8 @@ P2用私钥sk解密，得到交集和S_J
 ## 代码实现
 主要思路：协议有两方参与，故分别定义P1和P2的类，类中包括各自需要的功能  
 ### P1
+在P1的类中，首先对必要的参数进行初始化，并随机选择私钥k1。  
+round1,round2,round3函数分别对应协议流程中123步中P1需要完成的操作，包括计算相应的哈希值，打乱顺序等等
 ```Python
 class ProtocolPart_1:
     def __init__(self, set_V):
@@ -90,6 +92,7 @@ class ProtocolPart_1:
         return pow(self.g, x, self.p)
 ```
 ### P2
+P2的类中包括初始化的参数，生成同态加密的密钥对，并对P1发送的集合进行处理
 ```Python
 class ProtocolPart_2:
     def __init__(self, set_W):
