@@ -1,6 +1,5 @@
 # 用circom实现poseidon2哈希算法的电路
-- 项目心得：  
-短时间内速成一门新的语言确实比较困难，只能通过所给资料及上网查询大量相关资料略知一二  
+ 
 - 要求：   
 1. poseidon2哈希算法参数参考参考文档1的Table1，用(n,t,d)=(256,3,5)或(256,2,5)  
 2. 电路的公开输入用poseidon2哈希值，隐私输入为哈希原象，哈希算法的输入只考虑一个block即可  
@@ -10,6 +9,9 @@
 1. poseidon2哈希算法https://eprint.iacr.org/2023/323.pdf  
 2. circom说明文档https://docs.circom.io/  
 3. circom电路样例 https://github.com/iden3/circomlib
+
+- 项目心得：  
+短时间内速成一门新的语言确实比较困难，只能通过所给资料及上网查询大量相关资料略知一二 
 ## rust的安装
 直接使用以下指令安装，一直卡在下载阶段，于是更换为另一种方法
 ```bash
