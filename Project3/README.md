@@ -64,7 +64,7 @@ rustc --version
 ```
 ## 主要文件
 - poseidon_hasher.circom 主电路文件
-```circom
+```rust
 pragma circom 2.0.0;
 
 include "constants/round_constants.circom";
@@ -223,7 +223,7 @@ component main {public [hash]} = Poseidon2Hasher();
 ```
 
 - mds_matrix.circom MDS矩阵常数
-```circom
+```rust
 pragma circom 2.0.0;
 
 template MDSMatrix() {
@@ -252,7 +252,7 @@ template MDSMatrix() {
 ```
 - round_constants.circom 轮常数  
 生成Poseidon2哈希算法中所需的轮常数，在Poseidon的每一轮中，这些常数会与当前状态进行加法操作，然后经过S盒和矩阵变换，从而实现哈希算法的混淆和扩散
-```circom
+```rust
 pragma circom 2.0.0;
 
 template RoundConstants() {
